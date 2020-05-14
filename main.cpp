@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "EState.h"
@@ -9,6 +10,7 @@
 using std::cout;
 using std::endl;
 using std::sort;
+using std::string;
 using std::vector;
 
 vector<vector<EState>> ParseIntMapToEState(const vector<vector<int>> &map)
@@ -27,15 +29,17 @@ vector<vector<EState>> ParseIntMapToEState(const vector<vector<int>> &map)
     return parsedMap;
 }
 
-bool comp(const Point &a, const Point &b)
+bool comp(const Point *a, const Point *b)
 {
-    return (a.gValue + a.hValue) > (b.gValue + b.hValue);
+    int fVal1 = a->GetGValue() + a->GetHValue();
+    int fVal2 = b->GetGValue() + b->GetHValue();
+    return fVal1 > fVal2;
 }
 
-Point GetNextPoint(vector<Point> &openList)
+Point *GetNextPoint(vector<Point *> &openList)
 {
     sort(openList.begin(), openList.end(), comp);
-    Point nextPoint = openList.back();
+    Point *nextPoint = openList.back();
     openList.pop_back();
     return nextPoint;
 }
@@ -45,27 +49,40 @@ int CalculateHValue(const int endY, const int endX, const int startY, const int 
     return abs(endY - startY) + abs(endX - startX);
 }
 
-void AddNeighbors(const vector<vector<EState>> &map, vector<Point> &openList, const Point &current, const int endY, const int endX)
+void AddNeighbors(const vector<vector<EState>> &map, vector<Point *> &points, vector<Point *> &openList, const Point *current, const int endY, const int endX)
 {
     constexpr int delta[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 
     for (int i = 0; i < 4; i++)
     {
-        int nextY = current.y - delta[i][0];
-        int nextX = current.x - delta[i][1];
+        int nextY = current->GetY() - delta[i][0];
+        int nextX = current->GetX() - delta[i][1];
         if (nextY >= 0 && nextY < map.size() &&
             nextX >= 0 && nextX < map.back().size() &&
             map[nextY][nextX] == EState::Empty)
         {
-            Point point;
-            point.parent = &current;
-            point.y = nextY;
-            point.x = nextX;
-            point.gValue = current.gValue + 1;
-            point.hValue = CalculateHValue(endY, endX, current.y, current.x);
-            openList.push_back(point);
+            Point *point = new Point(
+                current,
+                nextY,
+                nextX,
+                current->GetGValue() + 1,
+                CalculateHValue(endY, endX, current->GetY(), current->GetX()));
+            points.push_back(point);
+            openList.push_back(points.back());
         }
     }
+}
+
+void MarkFinalPath(vector<vector<EState>> &map, const Point *finish)
+{
+    const Point *point = finish;
+    while (point->GetParent() != nullptr)
+    {
+        map[point->GetY()][point->GetX()] = EState::Path;
+        point = point->GetParent();
+    }
+    map[point->GetY()][point->GetX()] = EState::Starting;
+    map[finish->GetY()][finish->GetX()] = EState::Finish;
 }
 
 int main()
@@ -82,29 +99,36 @@ int main()
     const int END_Y = originalMap.size() - 1;
     const int END_X = originalMap.back().size() - 1;
 
-    Point startPoint;
-    startPoint.parent = nullptr;
-    startPoint.y = 0;
-    startPoint.x = 0;
-    startPoint.gValue = 0;
-    startPoint.hValue = END_Y + END_X;
+    vector<Point *> points;
+    Point *startPoint = new Point(0, 0, 0, END_Y + END_X);
+    points.push_back(startPoint);
 
-    vector<Point> openList{startPoint};
-    vector<vector<int>> allPath;
+    vector<Point *> openList{points.back()};
     while (openList.size() > 0)
     {
-        Point nextPoint = GetNextPoint(openList);
-        parsedMap[nextPoint.y][nextPoint.x] = EState::Visited;
-        allPath.push_back(vector<int>{nextPoint.y, nextPoint.x});
-        if (nextPoint.y == END_Y && nextPoint.x == END_X)
+        Point *nextPoint = GetNextPoint(openList);
+        parsedMap[nextPoint->GetY()][nextPoint->GetX()] = EState::Visited;
+
+        if (nextPoint->GetY() == END_Y && nextPoint->GetX() == END_X)
         {
-            cout << "Finish!" << endl;
+            MarkFinalPath(parsedMap, nextPoint);
             break;
         }
 
-        AddNeighbors(parsedMap, openList, nextPoint, END_Y, END_X);
+        AddNeighbors(parsedMap, points, openList, nextPoint, END_Y, END_X);
     }
 
-    vector<vector<int>> answer{{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {4, 1}, {4, 2}, {4, 3}, {4, 4}, {3, 2}, {2, 2}, {2, 3}, {2, 4}, {2, 5}, {2, 6}, {3, 6}, {4, 6}};
-    assert(allPath == answer);
+    for (auto v : parsedMap)
+    {
+        for (auto state : v)
+        {
+            cout << int(state) << " ";
+        }
+        cout << endl;
+    }
+
+    for (Point *p : points)
+    {
+        delete p;
+    }
 }

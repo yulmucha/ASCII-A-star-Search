@@ -1,28 +1,38 @@
 #pragma once
 
-struct Point
+class Point
 {
-    const Point* parent;
-    int y;
-    int x;
-    int gValue;
-    int hValue;
+public:
+    Point(const int y, const int x, const int gVal, const int hVal);
+    Point(const Point* parent, const int y, const int x, const int gVal, const int hVal);
+    int GetY() const { return mY; }
+    int GetX() const { return mX; }
+    int GetGValue() const { return mGValue; }
+    int GetHValue() const { return mHValue; }
+    const Point* GetParent() const { return mParent; }
+
+private:
+    const Point* mParent;
+    const int mY;
+    const int mX;
+    const int mGValue;
+    const int mHValue;
 };
 
-// class Point
-// {
-// public:
-//     Point(const int y, const int x, const int gVal, const int hVal);
-//     int GetY() const { return mY; }
-//     int GetX() const { return mX; }
-//     int GetGValue() const { return mGValue; }
-//     int GetHValue() const { return mHValue; }
-//     Point *GetParent() const { return parent; }
+Point::Point(const int y, const int x, const int gVal, const int hVal)
+    : mParent(nullptr)
+    , mY(y)
+    , mX(x)
+    , mGValue(gVal)
+    , mHValue(hVal)
+{
+}
 
-// private:
-//     Point *parent;
-//     int mY;
-//     int mX;
-//     int mGValue;
-//     int mHValue;
-// };
+Point::Point(const Point* parent, const int y, const int x, const int gVal, const int hVal)
+    : mParent(parent)
+    , mY(y)
+    , mX(x)
+    , mGValue(gVal)
+    , mHValue(hVal)
+{
+}

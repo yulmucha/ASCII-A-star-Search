@@ -5,5 +5,7 @@ enum class EState
     Empty = 0,
     Obstacle = 1,
     Visited,
-    Path
+    Path,
+    Starting,
+    Finish
 };
