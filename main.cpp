@@ -1,8 +1,11 @@
 #include <algorithm>
 #include <cassert>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
+#include <Windows.h>
 
 #include "EState.h"
 #include "Point.h"
@@ -12,6 +15,36 @@ using std::endl;
 using std::sort;
 using std::string;
 using std::vector;
+
+vector<vector<int>> ReadMapFile(const string &path)
+{
+    vector<vector<int>> map;
+    string line;
+    std::ifstream filestream(path);
+    if (filestream.is_open())
+    {
+        while (std::getline(filestream, line))
+        {
+            vector<int> row;
+            int n;
+            char c;
+            std::istringstream linestream(line);
+            while (linestream >> n >> c && c == ',')
+            {
+                if (n == 0)
+                {
+                    row.push_back(0);
+                }
+                else
+                {
+                    row.push_back(1);
+                }
+            }
+            map.push_back(row);
+        }
+    }
+    return map;
+}
 
 vector<vector<EState>> ParseIntMapToEState(const vector<vector<int>> &map)
 {
@@ -31,8 +64,8 @@ vector<vector<EState>> ParseIntMapToEState(const vector<vector<int>> &map)
 
 bool comp(const Point *a, const Point *b)
 {
-    int fVal1 = a->GetGValue() + a->GetHValue();
-    int fVal2 = b->GetGValue() + b->GetHValue();
+    int fVal1 = a->GetGVal() + a->GetHVal();
+    int fVal2 = b->GetGVal() + b->GetHVal();
     return fVal1 > fVal2;
 }
 
@@ -65,7 +98,7 @@ void AddNeighbors(const vector<vector<EState>> &map, vector<Point *> &points, ve
                 current,
                 nextY,
                 nextX,
-                current->GetGValue() + 1,
+                current->GetGVal() + 1,
                 CalculateHValue(endY, endX, current->GetY(), current->GetX()));
             points.push_back(point);
             openList.push_back(points.back());
@@ -85,22 +118,58 @@ void MarkFinalPath(vector<vector<EState>> &map, const Point *finish)
     map[finish->GetY()][finish->GetX()] = EState::Finish;
 }
 
+void PrintMap(const vector<vector<EState>> &map)
+{
+    SetConsoleOutputCP(CP_UTF8);
+    for (auto &v : map)
+    {
+        for (auto state : v)
+        {
+            string s;
+            switch (state)
+            {
+            case EState::Obstacle:
+                s = "🗻";
+                break;
+            case EState::Path:
+                s = "🚑";
+                break;
+            case EState::Starting:
+                s = "🚦";
+                break;
+            case EState::Finish:
+                s = "🏥";
+                break;
+            default:
+                s = "🔲";
+                break;
+            }
+            std::cout << s << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 int main()
 {
-    vector<vector<int>> originalMap{
-        {0, 1, 0, 0, 0, 0, 0},
-        {0, 1, 0, 0, 0, 0, 0},
-        {0, 1, 0, 0, 0, 0, 0},
-        {0, 1, 0, 1, 1, 1, 0},
-        {0, 0, 0, 0, 0, 1, 0}};
+    // vector<vector<int>> originalMap{
+    //     {0, 1, 0, 0, 0, 0, 0},
+    //     {0, 1, 0, 0, 0, 0, 0},
+    //     {0, 1, 0, 0, 0, 0, 0},
+    //     {0, 1, 0, 1, 1, 1, 0},
+    //     {0, 0, 0, 0, 0, 1, 0}};
+
+    auto originalMap = ReadMapFile("map");
 
     vector<vector<EState>> parsedMap = ParseIntMapToEState(originalMap);
 
+    constexpr int START_Y = 0;
+    constexpr int START_X = 0;
     const int END_Y = originalMap.size() - 1;
     const int END_X = originalMap.back().size() - 1;
 
     vector<Point *> points;
-    Point *startPoint = new Point(0, 0, 0, END_Y + END_X);
+    Point *startPoint = new Point(START_Y, START_X, 0, END_Y + END_X);
     points.push_back(startPoint);
 
     vector<Point *> openList{points.back()};
@@ -118,14 +187,7 @@ int main()
         AddNeighbors(parsedMap, points, openList, nextPoint, END_Y, END_X);
     }
 
-    for (auto v : parsedMap)
-    {
-        for (auto state : v)
-        {
-            cout << int(state) << " ";
-        }
-        cout << endl;
-    }
+    PrintMap(parsedMap);
 
     for (Point *p : points)
     {

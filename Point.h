@@ -7,8 +7,8 @@ public:
     Point(const Point* parent, const int y, const int x, const int gVal, const int hVal);
     int GetY() const { return mY; }
     int GetX() const { return mX; }
-    int GetGValue() const { return mGValue; }
-    int GetHValue() const { return mHValue; }
+    int GetGVal() const { return mGValue; }
+    int GetHVal() const { return mHValue; }
     const Point* GetParent() const { return mParent; }
 
 private:
