@@ -2,6 +2,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -62,17 +63,17 @@ vector<vector<EState>> ParseIntMapToEState(const vector<vector<int>> &map)
     return parsedMap;
 }
 
-bool comp(const Point *a, const Point *b)
+bool comp(const std::shared_ptr<Point> a, const std::shared_ptr<Point> b)
 {
     int fVal1 = a->GetGVal() + a->GetHVal();
     int fVal2 = b->GetGVal() + b->GetHVal();
     return fVal1 > fVal2;
 }
 
-Point *GetNextPoint(vector<Point *> &openList)
+std::shared_ptr<Point> GetNextPoint(vector<std::shared_ptr<Point>> &openList)
 {
     sort(openList.begin(), openList.end(), comp);
-    Point *nextPoint = openList.back();
+    auto nextPoint = openList.back();
     openList.pop_back();
     return nextPoint;
 }
@@ -82,7 +83,7 @@ int CalculateHValue(const int endY, const int endX, const int startY, const int 
     return abs(endY - startY) + abs(endX - startX);
 }
 
-void AddNeighbors(const vector<vector<EState>> &map, vector<Point *> &points, vector<Point *> &openList, const Point *current, const int endY, const int endX)
+void AddNeighbors(const vector<vector<EState>> &map, vector<std::shared_ptr<Point>> &openList, const std::shared_ptr<Point> current, const int endY, const int endX)
 {
     constexpr int delta[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 
@@ -94,27 +95,26 @@ void AddNeighbors(const vector<vector<EState>> &map, vector<Point *> &points, ve
             nextX >= 0 && nextX < map.back().size() &&
             map[nextY][nextX] == EState::Empty)
         {
-            Point *point = new Point(
+            auto point = std::make_shared<Point>(
                 current,
                 nextY,
                 nextX,
                 current->GetGVal() + 1,
                 CalculateHValue(endY, endX, current->GetY(), current->GetX()));
-            points.push_back(point);
-            openList.push_back(points.back());
+            openList.push_back(point);
         }
     }
 }
 
-void MarkFinalPath(vector<vector<EState>> &map, const Point *finish)
+void MarkFinalPath(vector<vector<EState>> &map, const std::shared_ptr<Point> finish)
 {
-    const Point *point = finish;
-    while (point->GetParent() != nullptr)
+    auto tempPoint = finish;
+    while (tempPoint->GetParent() != nullptr)
     {
-        map[point->GetY()][point->GetX()] = EState::Path;
-        point = point->GetParent();
+        map[tempPoint->GetY()][tempPoint->GetX()] = EState::Path;
+        tempPoint = tempPoint->GetParent();
     }
-    map[point->GetY()][point->GetX()] = EState::Starting;
+    map[tempPoint->GetY()][tempPoint->GetX()] = EState::Starting;
     map[finish->GetY()][finish->GetX()] = EState::Finish;
 }
 
@@ -168,14 +168,16 @@ int main()
     const int END_Y = originalMap.size() - 1;
     const int END_X = originalMap.back().size() - 1;
 
-    vector<Point *> points;
-    Point *startPoint = new Point(START_Y, START_X, 0, END_Y + END_X);
-    points.push_back(startPoint);
+    auto startPoint = std::make_shared<Point>(
+        START_Y,
+        START_X,
+        0,              // G-Value
+        END_Y + END_X); // H-Value
 
-    vector<Point *> openList{points.back()};
+    vector<std::shared_ptr<Point>> openList{startPoint};
     while (openList.size() > 0)
     {
-        Point *nextPoint = GetNextPoint(openList);
+        auto nextPoint = GetNextPoint(openList);
         parsedMap[nextPoint->GetY()][nextPoint->GetX()] = EState::Visited;
 
         if (nextPoint->GetY() == END_Y && nextPoint->GetX() == END_X)
@@ -184,13 +186,8 @@ int main()
             break;
         }
 
-        AddNeighbors(parsedMap, points, openList, nextPoint, END_Y, END_X);
+        AddNeighbors(parsedMap, openList, nextPoint, END_Y, END_X);
     }
 
     PrintMap(parsedMap);
-
-    for (Point *p : points)
-    {
-        delete p;
-    }
 }
