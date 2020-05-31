@@ -106,13 +106,13 @@ void AddNeighbors(const vector<vector<EState>> &map, vector<std::shared_ptr<Poin
     }
 }
 
-void MarkFinalPath(vector<vector<EState>> &map, const std::shared_ptr<Point> finish)
+void MarkFinalPath(vector<vector<EState>> &map, const Point *finish)
 {
     auto tempPoint = finish;
     while (tempPoint->GetParent() != nullptr)
     {
         map[tempPoint->GetY()][tempPoint->GetX()] = EState::Path;
-        tempPoint = tempPoint->GetParent();
+        tempPoint = tempPoint->GetParent().get();
     }
     map[tempPoint->GetY()][tempPoint->GetX()] = EState::Starting;
     map[finish->GetY()][finish->GetX()] = EState::Finish;
@@ -182,7 +182,7 @@ int main()
 
         if (nextPoint->GetY() == END_Y && nextPoint->GetX() == END_X)
         {
-            MarkFinalPath(parsedMap, nextPoint);
+            MarkFinalPath(parsedMap, nextPoint.get());
             break;
         }
 
